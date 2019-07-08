@@ -73,4 +73,14 @@ move m@(p@(Piece t c _), sq) = do (b, col) <- get
                   
 
 standardBoard :: Board
-standardBoard = error "TODO implement"
+standardBoard = let w = map (\i -> Piece Pawn White (i, 1)) [0..7] ++         
+                      [ Piece Rook White (0, 0)
+                      , Piece Rook White (7, 0)
+                      , Piece Knight White (1, 0)
+                      , Piece Knight White (6, 0)
+                      , Piece Bishop White (2, 0)
+                      , Piece Bishop White (5, 0)
+                      , Piece Queen White (3, 0)
+                      , Piece King White (4, 0)
+                      ] in
+                      w ++ map (\(Piece t _ (x, y)) -> Piece t Black (x, 7 - y)) w
