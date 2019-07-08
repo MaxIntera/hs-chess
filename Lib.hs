@@ -1,6 +1,7 @@
 module Lib where
 
 import Data.Maybe (listToMaybe)
+import Control.Monad.State
 
 type Square = (Int, Int)
 
@@ -17,12 +18,14 @@ data Piece = Piece { piecetype :: PieceType
                    deriving (Eq, Show)
 
 type Board = [Piece]
+type Move = (Piece, Square)
+type GameState = State (Board, PieceColor)
 
 validSquare :: Square -> Bool
 validSquare (x, y) = x < 8 && x >= 0 && y < 8 && y >= 0
 
-validMove :: Board -> Piece -> Square -> Bool
-validMove b p sq@(x', y') = 
+validMove :: Board -> Move -> Bool
+validMove b (p, sq@(x', y')) = 
     let (x, y) = square p in
     validSquare sq &&
     case piecetype p of
@@ -40,14 +43,34 @@ validMove b p sq@(x', y') =
         
         Bishop -> abs (x - x') == abs (y - y') -- TODO implement collision checking
         
-        Queen -> validMove b (Piece Rook (piececolor p) (square p)) sq ||
+        Queen -> validMove b ((Piece Rook (piececolor p) (square p)), sq) ||
           
-                 validMove b (Piece Bishop (piececolor p) (square p)) sq
+                 validMove b ((Piece Bishop (piececolor p) (square p)), sq)
 
         King -> abs (x - x') < 2 && abs (y - y') < 2 && square p /= sq
 
 pieceAt :: Board -> Square -> Maybe Piece
 pieceAt b sq = listToMaybe $ filter ((==sq) . square) b
+
+removePiece :: Piece -> Board -> Board
+removePiece p = filter (/=p)
+
+addPiece :: Piece -> Board -> Board
+addPiece = (:)
+
+move :: Move -> GameState ()
+move m@(p@(Piece t c _), sq) = do (b, col) <- get
+                                  let enemy = pieceAt b sq
+                                  let removeEnemy = case enemy of
+                                                    Nothing -> id
+                                                    Just e -> removePiece e
+                                  if validMove b m
+                                  then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
+                                           , if col == White then Black else White
+                                        )
+                                  else put (b, col)
+
+                  
 
 standardBoard :: Board
 standardBoard = error "TODO implement"
