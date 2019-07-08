@@ -58,19 +58,28 @@ removePiece p = filter (/=p)
 addPiece :: Piece -> Board -> Board
 addPiece = (:)
 
-move :: Move -> GameState ()
-move m@(p@(Piece t c _), sq) = do (b, col) <- get
-                                  let enemy = pieceAt b sq
-                                  let removeEnemy = case enemy of
-                                                    Nothing -> id
-                                                    Just e -> removePiece e
-                                  if validMove b m
-                                  then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
-                                           , if col == White then Black else White
-                                        )
-                                  else put (b, col)
-
-                  
+movePiece :: Move -> GameState ()
+movePiece m@(p@(Piece t c _), sq) = do (b, col) <- get
+                                       let enemy = pieceAt b sq
+                                       let removeEnemy = case enemy of
+                                                         Nothing -> id
+                                                         Just e -> removePiece e
+                                       if validMove b m
+                                       then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
+                                                , if col == White then Black else White
+                                             )
+                                       else return ()
+     
+move :: (Square, Square) -> GameState ()
+move (f, t) = do (b, col) <- get
+                 let p = pieceAt b f
+                 case p of
+                     Nothing -> return ()
+                     Just (p@(Piece _ c _)) -> 
+                         if c == col
+                             then movePiece (p, t)
+                             else return ()
+                          
 
 standardBoard :: Board
 standardBoard = let w = map (\i -> Piece Pawn White (i, 1)) [0..7] ++         
