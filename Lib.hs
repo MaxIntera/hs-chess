@@ -35,7 +35,7 @@ validMove b (p, sq@(x', y')) =
         Pawn -> let dir = if piececolor p == White then 1 else -1 in
                 if pieceAt b sq == Nothing
                     then x == x' && 
-                         if y == dir || y == 8 + dir
+                         if y == dir || y == 7 + dir
                           then y + dir == y' || y + 2 * dir == y' 
                           else y + dir == y'
                     else abs (x - x') == 1 && y + dir == y'
@@ -66,7 +66,7 @@ removePiece p = filter (/=p)
 addPiece :: Piece -> Board -> Board
 addPiece = (:)
 
-movePiece :: Move -> GameState ()
+movePiece :: Move -> GameState String
 movePiece m@(p@(Piece t c _), sq) = 
     do (b, col) <- get
        let enemy = pieceAt b sq
@@ -76,19 +76,19 @@ movePiece m@(p@(Piece t c _), sq) =
        if validMove b m
        then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
                 , if col == White then Black else White
-             )
-       else return ()
+             ) >> return "Success"
+       else return $ "Error: Invalid move \"" ++ show p ++ " to " ++ show sq ++ "\""
      
-move :: (Square, Square) -> GameState ()
+move :: (Square, Square) -> GameState String
 move (f, t) = 
     do (b, col) <- get
        let p = pieceAt b f
        case p of
-           Nothing -> return ()
+           Nothing -> return $ "Error: No piece at " ++ show f
            Just (p@(Piece _ c _)) -> 
                if c == col
                    then movePiece (p, t)
-                   else return ()
+                   else return $ "Error: Invalid piece color" 
                           
 
 standardBoard :: Board
@@ -103,3 +103,4 @@ standardBoard = let w = map (\i -> Piece Pawn White (i, 1)) [0..7] ++
                       , Piece King White (4, 0)
                       ] in
                       w ++ map (\(Piece t _ (x, y)) -> Piece t Black (x, 7 - y)) w
+
