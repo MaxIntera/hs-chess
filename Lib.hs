@@ -41,8 +41,8 @@ validMove b (p, sq@(x', y')) =
                     else abs (x - x') == 1 && y + dir == y'
         
         Rook -> (x == x') /= (y == y') &&  -- TODO implement colision checking
-                and (map (\k -> pieceAt b k == Nothing || k == (x,y) || k == sq) 
-                [(i, j) | i <- intsBetween x x', j <- intsBetween y y'])
+                all (\k -> pieceAt b k == Nothing || k == (x,y) || k == sq) 
+                [(i, j) | i <- intsBetween x x', j <- intsBetween y y']
         
         Knight -> (abs (x - x') == 2 && abs (y - y') == 1) ||
                   (abs (x - x') == 1 && abs (y - y') == 2)
