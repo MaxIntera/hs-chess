@@ -9,13 +9,14 @@ main = do
     putStrLn str
 
 demoGame = liftM (intercalate "\n") . mapM move $
-              [ ((0,1), (0,3))
+              [ ((1,1), (1,2))
               , ((0,6), (0,5))
-              , ((0,0), (0,2))
+              , ((2,0), (0,2))
               , ((1,6), (1,4))
-              , ((0,2), (4,2))
-              , ((1,4), (0,3))
-              , ((4,2), (4,5))
+              , ((0,2), (3,5))
+              , ((1,4), (1,3))
+              , ((3,5), (2,6))
+              , ((3,7), (2,6))
               ] 
 
 testMove :: Board -> ((Int, Int), (Int, Int)) -> IO ()
@@ -29,7 +30,9 @@ sqToChar b sq  =  case pieceAt b sq of
 showBoard :: (Board, PieceColor) -> String
 showBoard (b, c) = "\n____\n" ++ show c ++ "\n" ++
                 (concat $ map (\row -> 
-                '|' : map (\col -> 
+                show row ++ '|' : map (\col -> 
                            sqToChar b (col, row)
                           ) [0..7] ++ "|\n"   
-                ) [0..7])
+                ) [7,6..0] ) 
+                ++ "  " ++ 
+                concat (map show [0..7]) ++ "\n"

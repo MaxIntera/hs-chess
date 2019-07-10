@@ -40,14 +40,16 @@ validMove b (p, sq@(x', y')) =
                           else y + dir == y'
                     else abs (x - x') == 1 && y + dir == y'
         
-        Rook -> (x == x') /= (y == y') &&  -- TODO implement colision checking
+        Rook -> (x == x') /= (y == y') &&
                 all (\k -> pieceAt b k == Nothing || k == (x,y) || k == sq) 
                 [(i, j) | i <- intsBetween x x', j <- intsBetween y y']
         
         Knight -> (abs (x - x') == 2 && abs (y - y') == 1) ||
                   (abs (x - x') == 1 && abs (y - y') == 2)
         
-        Bishop -> abs (x - x') == abs (y - y') -- TODO implement collision checking
+        Bishop -> abs (x - x') == abs (y - y') &&
+                all (\k -> pieceAt b k == Nothing || k == (x,y) || k == sq) 
+                (zip (intsBetween x x') (intsBetween y y'))
         
         Queen -> validMove b ((Piece Rook (piececolor p) (square p)), sq) ||
           
@@ -55,7 +57,7 @@ validMove b (p, sq@(x', y')) =
 
         King -> abs (x - x') < 2 && abs (y - y') < 2 && square p /= sq
 
-    where intsBetween m n = if m < n then [m..n] else [n..m]
+    where intsBetween m n = if m < n then [m..n] else [m, m-1..n]
 
 pieceAt :: Board -> Square -> Maybe Piece
 pieceAt b sq = listToMaybe $ filter ((==sq) . square) b
