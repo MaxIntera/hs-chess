@@ -2,6 +2,7 @@ module Lib where
 
 import Data.Maybe (listToMaybe)
 import Control.Monad.State
+import Data.List (and)
 
 type Square = (Int, Int)
 
@@ -24,6 +25,8 @@ type GameState = State (Board, PieceColor)
 validSquare :: Square -> Bool
 validSquare (x, y) = x < 8 && x >= 0 && y < 8 && y >= 0
 
+-- TODO debug and test this, compiler doesn't know
+-- the rules of chess
 validMove :: Board -> Move -> Bool
 validMove b (p, sq@(x', y')) = 
     let (x, y) = square p in
@@ -31,12 +34,15 @@ validMove b (p, sq@(x', y')) =
     case piecetype p of
         Pawn -> let dir = if piececolor p == White then 1 else -1 in
                 if pieceAt b sq == Nothing
-                    then  if x == dir || x == 8 + dir
-                          then x == x' && y + 2 * dir == y' 
-                          else x == x' && y + dir == y'
+                    then x == x' && 
+                         if y == dir || y == 8 + dir
+                          then y + dir == y' || y + 2 * dir == y' 
+                          else y + dir == y'
                     else abs (x - x') == 1 && y + dir == y'
         
-        Rook -> (x == x') /= (y == y') -- TODO implement colision checking
+        Rook -> (x == x') /= (y == y') &&  -- TODO implement colision checking
+                and (map (\k -> pieceAt b k == Nothing || k == (x,y) || k == sq) 
+                [(i, j) | i <- intsBetween x x', j <- intsBetween y y'])
         
         Knight -> (abs (x - x') == 2 && abs (y - y') == 1) ||
                   (abs (x - x') == 1 && abs (y - y') == 2)
@@ -49,6 +55,8 @@ validMove b (p, sq@(x', y')) =
 
         King -> abs (x - x') < 2 && abs (y - y') < 2 && square p /= sq
 
+    where intsBetween m n = if m < n then [m..n] else [n..m]
+
 pieceAt :: Board -> Square -> Maybe Piece
 pieceAt b sq = listToMaybe $ filter ((==sq) . square) b
 
@@ -59,26 +67,28 @@ addPiece :: Piece -> Board -> Board
 addPiece = (:)
 
 movePiece :: Move -> GameState ()
-movePiece m@(p@(Piece t c _), sq) = do (b, col) <- get
-                                       let enemy = pieceAt b sq
-                                       let removeEnemy = case enemy of
-                                                         Nothing -> id
-                                                         Just e -> removePiece e
-                                       if validMove b m
-                                       then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
-                                                , if col == White then Black else White
-                                             )
-                                       else return ()
+movePiece m@(p@(Piece t c _), sq) = 
+    do (b, col) <- get
+       let enemy = pieceAt b sq
+       let removeEnemy = case enemy of
+                         Nothing -> id
+                         Just e -> removePiece e
+       if validMove b m
+       then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
+                , if col == White then Black else White
+             )
+       else return ()
      
 move :: (Square, Square) -> GameState ()
-move (f, t) = do (b, col) <- get
-                 let p = pieceAt b f
-                 case p of
-                     Nothing -> return ()
-                     Just (p@(Piece _ c _)) -> 
-                         if c == col
-                             then movePiece (p, t)
-                             else return ()
+move (f, t) = 
+    do (b, col) <- get
+       let p = pieceAt b f
+       case p of
+           Nothing -> return ()
+           Just (p@(Piece _ c _)) -> 
+               if c == col
+                   then movePiece (p, t)
+                   else return ()
                           
 
 standardBoard :: Board
