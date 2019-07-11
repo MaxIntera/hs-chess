@@ -13,7 +13,7 @@ main = do
 
     where iterateM m = m >=> iterateM m
 
-demoGame = liftM (intercalate "\n") . mapM move $
+demoGame = liftM (intercalate "\n" . map show) . mapM move $
               [ ((1,1), (1,2))
               , ((0,6), (0,5))
               , ((2,0), (0,2))
@@ -56,6 +56,11 @@ showBoard i (b, c) = "\n____\n" ++ show c ++ "\n" ++
                           ) [0..7] ++ "|\n"   
                 ) [7,6..0] ) 
                 ++ "  " ++ ['A'..'H'] ++ "\n"
+                ++ if check then "Your king is in check!\n" else "" 
+    where
+        check = case square <$> getKing b c of
+            Nothing -> False
+            Just sq -> inCheck b sq c
 
 interactGame :: Bool -> GameState -> IO GameState
 interactGame i s = do 

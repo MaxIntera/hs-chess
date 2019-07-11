@@ -69,7 +69,7 @@ removePiece p = filter (/=p)
 addPiece :: Piece -> Board -> Board
 addPiece = (:)
 
-movePiece :: Move -> GameOp String
+movePiece :: Move -> GameOp (Bool, String)
 movePiece m@(p@(Piece t c _), sq) = 
     do (b, col) <- get
        let enemy = pieceAt b sq
@@ -79,19 +79,19 @@ movePiece m@(p@(Piece t c _), sq) =
        if validMove b m
        then put (addPiece (Piece t c sq) $ removePiece p $ removeEnemy $ b
                 , if col == White then Black else White
-             ) >> return "Success"
-       else return $ "Error: Invalid move \"" ++ show p ++ " to " ++ show sq ++ "\""
-     
-move :: (Square, Square) -> GameOp String
+             ) >> return (True, "Success")
+       else return $ (False, "Error: Invalid move \"" ++ show p ++ " to " ++ show sq ++ "\"")
+
+move :: (Square, Square) -> GameOp (Bool, String)
 move (f, t) = 
     do (b, col) <- get
        let p = pieceAt b f
        case p of
-           Nothing -> return $ "Error: No piece at " ++ show f
+           Nothing -> return $ (False, "Error: No piece at " ++ show f)
            Just (p@(Piece _ c _)) -> 
                if c == col
                    then movePiece (p, t)
-                   else return $ "Error: Invalid piece color" 
+                   else return $ (False, "Error: Invalid piece color") 
                           
 
 standardBoard :: Board
@@ -107,3 +107,11 @@ standardBoard = let w = map (\i -> Piece Pawn White (i, 1)) [0..7] ++
                       ] in
                       w ++ map (\(Piece t _ (x, y)) -> Piece t Black (x, 7 - y)) w
 
+inCheck :: Board -> Square -> PieceColor -> Bool
+inCheck b sq c = 
+    any (\p -> 
+        fst $ evalState (movePiece (p, sq)) (b, if c == White then Black else White)
+        ) (filter (\p -> piececolor p /= c) b)
+
+getKing :: Board -> PieceColor -> Maybe Piece
+getKing b c = listToMaybe $ filter (\(Piece t c' _) -> t == King && c' == c) b
