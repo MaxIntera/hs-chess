@@ -3,10 +3,13 @@ import Control.Monad.State
 import Data.List (intercalate)
 import Text.ParserCombinators.ReadP
 import Data.Char
+import System.Environment (getArgs)
 
-main =
-    return (standardBoard, White) >>=
-    iterateM interactGame
+main = do
+    args <- getArgs
+    let i = length args > 0 && head args == "-i"
+
+    return (standardBoard, White) >>= iterateM (interactGame i)
 
     where iterateM m = m >=> iterateM m
 
@@ -22,40 +25,56 @@ demoGame = liftM (intercalate "\n") . mapM move $
               ] 
 
 testMove :: Board -> ((Int, Int), (Int, Int)) -> IO ()
-testMove b sqs = putStrLn . showBoard $ execState (move sqs) (b, White)
+testMove b sqs = putStrLn . showBoard False $ execState (move sqs) (b, White)
 
-sqToChar :: Board -> Square -> Char
-sqToChar b sq  =  case pieceAt b sq of
+sqToChar :: Bool -> Board -> Square -> Char
+sqToChar i b sq  =  case pieceAt b sq of
                   Nothing -> ' '
-                  Just (Piece t _ _) -> if t == Knight then 'N' else head $ show t
+                  Just (Piece t c _) -> 
+                      if (c == White) /= i
+                      then case t of
+                          Pawn -> '\9817'
+                          Rook -> '\9814'
+                          Knight -> '\9816'
+                          Bishop -> '\9815'
+                          Queen -> '\9813'
+                          King -> '\9812'
+                      else case t of
+                          Pawn -> '\9823'
+                          Rook -> '\9820'
+                          Knight -> '\9822'
+                          Bishop -> '\9821'
+                          Queen -> '\9819'
+                          King -> '\9818'
 
-showBoard :: GameState -> String
-showBoard (b, c) = "\n____\n" ++ show c ++ "\n" ++
+
+showBoard :: Bool -> GameState -> String
+showBoard i (b, c) = "\n____\n" ++ show c ++ "\n" ++
                 (concat $ map (\row -> 
                 show (row + 1) ++ '|' : map (\col -> 
-                           sqToChar b (col, row)
+                           sqToChar i b (col, row)
                           ) [0..7] ++ "|\n"   
                 ) [7,6..0] ) 
                 ++ "  " ++ ['A'..'H'] ++ "\n"
 
-interactGame :: GameState -> IO GameState
-interactGame s =do 
-    putStrLn $ showBoard s
+interactGame :: Bool -> GameState -> IO GameState
+interactGame i s = do 
+    putStrLn $ showBoard i s
     str <- getLine
-    let maybemv = parseMaybe parseMove str
+    let maybemv = parseMaybe parseMove (toLower <$> str)
     case maybemv of
         Nothing -> return s
         Just mv -> return $ execState (move mv) s
 
-charToNum c = ord c - ord 'A'
+charToNum c = ord c - ord 'a'
 
 parseMove :: ReadP (Square, Square)
 parseMove = do
     skipSpaces
-    x <- charToNum <$> satisfy (\c -> c >= 'A' && c <= 'H')
+    x <- charToNum <$> satisfy (\c -> c >= 'a' && c <= 'h')
     y <- digitToInt <$> satisfy (\c -> c >= '1' && c <= '8')
     string " to "
-    x' <- charToNum <$> satisfy (\c -> c >= 'A' && c <= 'H')
+    x' <- charToNum <$> satisfy (\c -> c >= 'a' && c <= 'h')
     y' <- digitToInt <$> satisfy (\c -> c >= '1' && c <= '8')
     skipSpaces
     return ((x,y - 1),(x',y' - 1))
