@@ -20,7 +20,8 @@ data Piece = Piece { piecetype :: PieceType
 
 type Board = [Piece]
 type Move = (Piece, Square)
-type GameState = State (Board, PieceColor)
+type GameState = (Board, PieceColor)
+type GameOp = State GameState
 
 validSquare :: Square -> Bool
 validSquare (x, y) = x < 8 && x >= 0 && y < 8 && y >= 0
@@ -68,7 +69,7 @@ removePiece p = filter (/=p)
 addPiece :: Piece -> Board -> Board
 addPiece = (:)
 
-movePiece :: Move -> GameState String
+movePiece :: Move -> GameOp String
 movePiece m@(p@(Piece t c _), sq) = 
     do (b, col) <- get
        let enemy = pieceAt b sq
@@ -81,7 +82,7 @@ movePiece m@(p@(Piece t c _), sq) =
              ) >> return "Success"
        else return $ "Error: Invalid move \"" ++ show p ++ " to " ++ show sq ++ "\""
      
-move :: (Square, Square) -> GameState String
+move :: (Square, Square) -> GameOp String
 move (f, t) = 
     do (b, col) <- get
        let p = pieceAt b f
